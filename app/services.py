@@ -54,7 +54,7 @@ async def fetch_fgts_balance(cpf: str, token: str) -> dict:
                                 "message": "O status ainda está pendente. Por favor, tente buscar mais tarde."
                             }
                     else:
-                        return {"status": "success", "balance": data["data"]["status"]}
+                        return {"status": "success", "result": data["data"]["status"]}
             
             except httpx.RequestError as exc:
                 print(f"Erro ao solicitar saldo (tentativa {attempt + 1}): {exc}")
