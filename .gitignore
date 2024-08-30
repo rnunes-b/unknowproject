@@ -1,0 +1,10 @@
+# flask .gitignore
+*.pyc
+*.pyo
+__pycache__
+env
+static/dist
+static/node_modules
+templates/__init__.py
+templates/components
+templates/errors
