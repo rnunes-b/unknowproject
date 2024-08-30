@@ -41,16 +41,31 @@ async def fetch_fgts_balance(cpf: str, token: str) -> dict:
                 )
                 response.raise_for_status()
                 data = response.json()
+                
                 if data.get("data"):
-                    return {"status": "success", "balance": data["data"]}
+                    if data["data"]["status_reason"] is None:
+                        filtered_status = await fetch_filtered_status(cpf, token)
+                        if filtered_status and filtered_status[0] != "Status não encontrado":
+                            return {"status": "success", "balance": filtered_status}
+
+                        if attempt == retry_attempts - 1:
+                            return {
+                                "status": "success",
+                                "message": "O status ainda está pendente. Por favor, tente buscar mais tarde."
+                            }
+                    else:
+                        return {"status": "success", "balance": data["data"]["status"]}
+            
             except httpx.RequestError as exc:
                 print(f"Erro ao solicitar saldo (tentativa {attempt + 1}): {exc}")
-
+            
             if attempt < retry_attempts - 1:
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)  
 
-    return {"status": "error", "message": "Saldo FGTS não encontrado ou indisponível"}
-
+    return {
+        "status": "error",
+        "message": "Sistema indisponível no momento. Por favor, tente novamente mais tarde."
+    }
 
 async def fetch_filtered_status(cpf: str, token: str) -> list:
     headers = {"Authorization": f"Bearer {token}"}
