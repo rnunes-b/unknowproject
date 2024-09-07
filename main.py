@@ -1,5 +1,6 @@
+
 from fastapi import FastAPI
-from app.routers import router
+from app.routers.prata_api_router import router as prata_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
@@ -16,9 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api/v1")
-
+app.include_router(prata_router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():
-    return {"message": "FastAPI está rodando!"}
+    return {"message": "rodando!"}
