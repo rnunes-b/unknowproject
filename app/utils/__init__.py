@@ -5,3 +5,4 @@ from .format_response import format_result
 from .format_cpf import format_cpf
 from .format_date import format_date
 from .format_phone import format_phone
+from .format_pix_infos import get_bank_info

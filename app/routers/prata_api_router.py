@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from app.services.prata_api_service import PrataApiService
 from app.models.prata_api_models import SimulationRequest, ProposalRequest, FormalizationRequest
+from app.utils import get_bank_info
 import traceback
 router = APIRouter()
 prata_service = PrataApiService()
@@ -28,6 +29,15 @@ async def send_proposal(data: ProposalRequest):
 async def get_formalization_url(proposal_id: str, data: FormalizationRequest):
     try:
         result = await prata_service.get_formalization_url(data.dict(), proposal_id)
-        return result
+        return {"link": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/get_pix_infos/{cpf}")
+async def get_pix_infos(cpf: str, data: dict):
+    try:
+        result = await prata_service.fetch_pix(data, cpf)
+        print(result)
+        return get_bank_info(result)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
