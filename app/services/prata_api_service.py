@@ -80,11 +80,11 @@ class PrataApiService:
             value = await self.fetch_check_value(data, cpf, value_issue)
 
             strategy_result = await self.fetch_strategy(data, cpf, value)
-
             pix_result = await self.fetch_pix(data, cpf)
-
-            pix_resume = self.create_pix_resume(pix_result["data"])
-
+            if pix_result["data"]:
+                pix_resume = self.create_pix_resume(pix_result["data"])
+            else:
+                pix_resume = None
             strategy_result["pix_resume"] = pix_resume
 
             return strategy_result
@@ -159,17 +159,24 @@ class PrataApiService:
                 return value
         except httpx.RequestError:
             raise BotProposalInfoException(strategy.json())
+            
 
     async def fetch_pix(self, data, cpf):
         token = await self.authenticate(data)
         headers = {"Authorization": f"Bearer {token}"}
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
                 )
                 response.raise_for_status()
-                return response.json()
+                return {"data": self.create_pix_resume(response.json()["data"])}
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return {"data": None}
+            else:
+                raise BotProposalInfoException(response.json())
         except httpx.RequestError:
             raise BotProposalInfoException(response.json())
 
