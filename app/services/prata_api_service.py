@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from app.utils import format_result, extract_max_value, format_cpf, format_date, format_phone
+from app.utils import format_result, format_cpf, format_date, format_phone
 from app.exceptions import BotProposalInfoException, BotUnauthorizedException
 import httpx
 import time
@@ -22,7 +22,7 @@ class PrataApiService:
         self.retry_attempts = 3
         self.retry_delay = 5
 
-    async def authenticate(self, data):
+    async def authenticate(self, data: Dict[str, Any]) -> str:
         try:
             user_data = data["bank_access"]
             payload = {
@@ -40,16 +40,12 @@ class PrataApiService:
         except httpx.RequestError as error:
             traceback.print_exc()
             raise BotUnauthorizedException(
-                f"Não foi possível autenticar, verfique as credenciais informadas. E tente novamente, se o problema persistir contacte o suporte. {str(error)}"
+                f"Erro de autenticação: {str(error)}"
             )
-
         except (KeyError, ValueError) as e:
-            raise BotUnauthorizedException(f"Verifique os dados informados: {str(e)}")
-
+            raise BotUnauthorizedException(f"Dados inválidos: {str(e)}")
         except Exception as e:
-            raise BotUnauthorizedException(
-                f"Erro inesperado, entre em contato: {str(e)}"
-            )
+            raise BotUnauthorizedException(f"Erro inesperado: {str(e)}")
 
     async def simulate_fgts(self, data: Dict[str, Any]) -> Dict[str, Any]:
         token = await self.authenticate(data)
@@ -75,16 +71,15 @@ class PrataApiService:
             if not result["data"].get("issue_amount"):
                 return await self.fetch_filtered_status(data)
             
-            value_issue = result["data"]["issue_amount"]
+            strategy_result = await self.fetch_check_value(data, cpf)
 
-            value = await self.fetch_check_value(data, cpf, value_issue)
-
-            strategy_result = await self.fetch_strategy(data, cpf, value)
             pix_result = await self.fetch_pix(data, cpf)
+
             if pix_result["data"]:
                 pix_resume = self.create_pix_resume(pix_result["data"])
             else:
                 pix_resume = None
+
             strategy_result["pix_resume"] = pix_resume
 
             return strategy_result
@@ -92,7 +87,7 @@ class PrataApiService:
         except httpx.RequestError as e:
             traceback.print_exc()
             raise BotProposalInfoException(
-                f"Não foi possível simular o valor, tente novamente mais tarde: {str(e)}"
+                f"Erro na simulação: {str(e)}"
             )
 
     async def fetch_filtered_status(self, data):
@@ -128,39 +123,23 @@ class PrataApiService:
                     time.sleep(self.retry_delay)
                 else:
                     raise BotProposalInfoException(
-                        "Não foi possivel encontrar o status, tente novamente mais tarde"
+                        "Erro ao buscar status, tente novamente mais tarde"
                     )
 
-    async def fetch_strategy(self, data, cpf, value):
+    async def fetch_check_value(self, data, cpf):
         token = await self.authenticate(data)
         headers = {"Authorization": f"Bearer {token}"}
         try:
             async with httpx.AsyncClient() as client:
                 strategy = await client.get(
-                    f"{self.simulate_proposal_url}?document={cpf}&rate_id=16&wish_amount={value}",
+                    f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
                     headers=headers,
                 )
-                strategy.raise_for_status()
-                strategy_result = format_result(strategy.json())
-                return strategy_result
-        except httpx.RequestError:
-            raise BotProposalInfoException(strategy.json())
-
-    async def fetch_check_value(self, data, cpf, value):
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
-        try:
-            async with httpx.AsyncClient() as client:
-                strategy = await client.get(
-                    f"{self.simulate_proposal_url}?document={cpf}&rate_id=16&wish_amount={value}",
-                    headers=headers,
-                )
-                value = extract_max_value(strategy.json())
-                return value
+                resume = strategy.json()
+                return format_result(resume)
         except httpx.RequestError:
             raise BotProposalInfoException(strategy.json())
             
-
     async def fetch_pix(self, data, cpf):
         token = await self.authenticate(data)
         headers = {"Authorization": f"Bearer {token}"}
@@ -171,7 +150,7 @@ class PrataApiService:
                     f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
                 )
                 response.raise_for_status()
-                return {"data": self.create_pix_resume(response.json()["data"])}
+                return response.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return {"data": None}
@@ -309,7 +288,6 @@ class PrataApiService:
             "input_type": "pix",
         }
 
-
     async def get_formalization_url(self, data, proposal_id):
         try:
             token = await self.authenticate(data)
@@ -342,3 +320,22 @@ class PrataApiService:
                 "message": f"Ocorreu um erro de conexão ao buscar o link de formalização: {str(e)}. Por favor, tente novamente mais tarde.",
             }
 
+    async def _get_pix(self, data, cpf):
+            token = await self.authenticate(data)
+            headers = {"Authorization": f"Bearer {token}"}
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(
+                        f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
+                    )
+                    response.raise_for_status()
+                    return {"data": response.json()["data"]}
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    data = response.json()
+                    raise BotProposalInfoException(data["error"]["message"])
+                else:
+                    raise BotProposalInfoException(response.json())
+            except httpx.RequestError:
+                raise BotProposalInfoException(response.json())

@@ -36,7 +36,7 @@ async def get_formalization_url(proposal_id: str, data: FormalizationRequest):
 @router.get("/get_pix_infos/{cpf}")
 async def get_pix_infos(cpf: str, data: dict):
     try:
-        result = await prata_service.fetch_pix(data, cpf)
+        result = await prata_service._get_pix(data, cpf)
         print(result)
         return get_bank_info(result)
     except Exception as e:
