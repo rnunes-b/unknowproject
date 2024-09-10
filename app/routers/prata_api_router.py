@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 from app.services.prata_api_service import PrataApiService
-from app.services import BankService
+from app.services import BankService, ViaCEPService
+from app.exceptions import APIException 
 from app.models.prata_api_models import SimulationRequest, ProposalRequestPIX, ProposalRequestCC, FormalizationRequest
 from app.utils import get_bank_info
 
@@ -12,6 +13,9 @@ def get_prata_service():
 
 def get_bank_service():
     return BankService()
+
+def get_viacep_service():
+    return ViaCEPService()
 
 @router.post("/simulate_fgts")
 async def simulate_fgts(data: SimulationRequest, prata_service: PrataApiService = Depends(get_prata_service)):
@@ -68,3 +72,13 @@ async def get_banks(
             return []
     else:
         return [bank.dict() for bank in bank_service.list_all_banks()]
+
+@router.get("/cep/{cep}")
+async def get_address(cep: str, viacep_service: ViaCEPService = Depends(get_viacep_service)):
+    try:
+        address = await viacep_service.get_address(cep)
+        return address
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.to_dict())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"message": str(e)})
