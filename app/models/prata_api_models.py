@@ -1,9 +1,28 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Union
 
 class UserAuth(BaseModel):
     email: EmailStr 
     password: str
+
+class PixResume(BaseModel):
+    cpf: str
+    bank_name: str
+    client_name: str
+    account_number: str
+    branch_code: str
+    bank_id: int
+    account_created_at: str
+    account_type: str
+    input_type: str = "pix"
+
+class BankAccountInfo(BaseModel):
+    account_number: str
+    account_type: str
+    bank_id: int
+    branch_number: str
+    input_type: str = "manual"
+    account_created_at: Optional[str] = None
 
 class Contact(BaseModel):
     cpf: str
@@ -22,6 +41,7 @@ class Contact(BaseModel):
     state: Optional[str] = None
     street: Optional[str] = None
     zip_code: Optional[str] = None
+    pix_resume: Optional[PixResume] = None
 
 class BankAccess(BaseModel):
     username: str
@@ -34,6 +54,7 @@ class SimulationRequest(BaseModel):
 class ProposalRequest(SimulationRequest):
     bank_access: BankAccess
     simulation: Optional[dict] = None
+    bank_account_info: Optional[BankAccountInfo] = None
 
 class FormalizationRequest(BaseModel):
     bank_access: BankAccess
