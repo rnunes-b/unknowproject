@@ -159,7 +159,7 @@ class PrataApiService:
         except httpx.RequestError:
             raise BotProposalInfoException(response.json())
 
-    async def send_proposal(self, data):
+    async def send_proposal_pix(self, data):
         try:
             token = await self.authenticate(data)
             headers = {"Authorization": f"Bearer {token}"}
@@ -174,36 +174,56 @@ class PrataApiService:
             account_id = await self._send_first_stage(data, headers)
             await self._send_second_stage(data, headers, account_id)
             await self._send_third_stage(data, headers, account_id)
-            if "bank_account_info" in data:
-                bank_account_fields = {
-                    **common_fields,
-                    **data["bank_account_info"],
-                    "input_type": "manual",
-                }
-                await self._send_bank_account_stage(bank_account_fields, headers, account_id)
-                proposal_fields = bank_account_fields
-            elif "pix_resume" in data["contact"]:
-                pix_fields = {
-                    **common_fields,
-                    "account_number": data["contact"]["pix_resume"]["account_number"],
-                    "account_type": data["contact"]["pix_resume"]["account_type"],
-                    "bank_id": data["contact"]["pix_resume"]["bank_id"],
-                    "branch_number": data["contact"]["pix_resume"]["branch_code"],
-                    "input_type": "pix",
-                    "account_created_at": data["contact"]["pix_resume"]["account_created_at"],
-                }
-                await self._send_pix_stage(pix_fields, headers, account_id, cpf)
-                proposal_fields = pix_fields
-            else:
-                raise BotProposalInfoException("Informações de conta bancária ou PIX não fornecidas")
 
-            proposal = await self._send_last_stage(proposal_fields, headers, account_id)
+            pix_fields = {
+                **common_fields,
+                "account_number": data["pix_resume"]["account_number"],
+                "account_type": data["pix_resume"]["account_type"],
+                "bank_id": data["pix_resume"]["bank_id"],
+                "branch_number": data["pix_resume"]["branch_code"],
+                "input_type": "pix",
+                "account_created_at": data["pix_resume"]["account_created_at"],
+            }
+            await self._send_pix_stage(pix_fields, headers, account_id, cpf)
+
+            proposal = await self._send_last_stage(pix_fields, headers, account_id)
             url = await self.get_formalization_url(data, proposal["proposal_identifier"])
 
             return {"resume": proposal["proposal_number"], "formalization_url": url}
         except httpx.RequestError as e:
             traceback.print_exc()
             raise BotProposalInfoException(str(e))
+            
+    async def send_proposal_cc(self, data):
+            try:
+                token = await self.authenticate(data)
+                headers = {"Authorization": f"Bearer {token}"}
+
+                simulation_result = await self.simulate_fgts(data)
+                common_fields = {
+                    "contract_balance": simulation_result["contract_balance"],
+                    "amount_released": simulation_result["amount_released"],
+                }
+
+                account_id = await self._send_first_stage(data, headers)
+                await self._send_second_stage(data, headers, account_id)
+                await self._send_third_stage(data, headers, account_id)
+
+                bank_account_fields = {
+                    **common_fields,
+                    **data["bank_account_info"],
+                    "input_type": "manual",
+                }
+                await self._send_bank_account_stage(bank_account_fields, headers, account_id)
+
+                proposal = await self._send_last_stage(bank_account_fields, headers, account_id)
+                url = await self.get_formalization_url(data, proposal["proposal_identifier"])
+
+                return {"resume": proposal["proposal_number"], "formalization_url": url}
+            except httpx.RequestError as e:
+                traceback.print_exc()
+                raise BotProposalInfoException(str(e))
+
     async def _send_first_stage(self, data, headers):
         first_stage = {
             "birthdate": format_date(data["contact"]["birthdate"]),

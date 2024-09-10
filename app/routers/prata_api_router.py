@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import  Optional
+from typing import Optional
 from app.services.prata_api_service import PrataApiService
 from app.services import BankService
-from app.models.prata_api_models import SimulationRequest, ProposalRequest, FormalizationRequest
+from app.models.prata_api_models import SimulationRequest, ProposalRequestPIX, ProposalRequestCC, FormalizationRequest
 from app.utils import get_bank_info
 
 router = APIRouter()
@@ -20,18 +20,21 @@ async def simulate_fgts(data: SimulationRequest, prata_service: PrataApiService 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/send_proposal")
-async def send_proposal(data: ProposalRequest, prata_service: PrataApiService = Depends(get_prata_service)):
+@router.post("/send_proposal_pix")
+async def send_proposal_pix(data: ProposalRequestPIX, prata_service: PrataApiService = Depends(get_prata_service)):
     try:
         proposal_data = data.dict(exclude_unset=True)
-        if data.contact.pix_resume:
-            proposal_data["send_method"] = "pix"
-        elif data.bank_account_info:
-            proposal_data["send_method"] = "bank_account"
-        else:
-            raise HTTPException(status_code=400, detail="Informações de PIX ou conta bancária não fornecidas")
-        
-        return await prata_service.send_proposal(proposal_data)
+        proposal_data["send_method"] = "pix"
+        return await prata_service.send_proposal_pix(proposal_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/send_proposal_cc")
+async def send_proposal_cc(data: ProposalRequestCC, prata_service: PrataApiService = Depends(get_prata_service)):
+    try:
+        proposal_data = data.dict(exclude_unset=True)
+        proposal_data["send_method"] = "bank_account"
+        return await prata_service.send_proposal_cc(proposal_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
