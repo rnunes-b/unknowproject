@@ -1,60 +1,50 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, Union
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
 
-class UserAuth(BaseModel):
-    email: EmailStr 
-    password: str
+class SimulationRequest(BaseModel):
+    contact: Dict[str, Any]
+    bank_access: Dict[str, str]
 
-class PixResume(BaseModel):
-    cpf: str
-    bank_name: str
-    client_name: str
+class PIXResume(BaseModel):
     account_number: str
-    branch_code: str
-    bank_id: int
-    account_created_at: str
     account_type: str
-    input_type: str = "pix"
+    bank_id: str
+    branch_code: str
+    account_created_at: str
+
+class Contact(BaseModel):
+    cpf: str
+    birthdate: str
+    gender: str
+    name: str
+    phone: str
+    document_issue_date: str
+    document: str
+    document_federation_unit: str
+    document_type: str
+    mother_name: str
+    city: str
+    suburb: str
+    number: str
+    state: str
+    street: str
+    zip_code: str
+
+class ProposalRequestPIX(BaseModel):
+    contact: Contact
+    pix_resume: PIXResume
+    bank_access: Dict[str, str]
 
 class BankAccountInfo(BaseModel):
     account_number: str
     account_type: str
-    bank_id: int
+    bank_id: str
     branch_number: str
-    input_type: str = "manual"
-    account_created_at: Optional[str] = None
 
-class Contact(BaseModel):
-    cpf: str
-    birthdate: Optional[str] = None
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    gender: Optional[str] = None
-    document: Optional[str] = None
-    document_issue_date: Optional[str] = None
-    document_federation_unit: Optional[str] = None
-    document_type: Optional[str] = None
-    mother_name: Optional[str] = None
-    city: Optional[str] = None
-    suburb: Optional[str] = None
-    number: Optional[str] = None
-    state: Optional[str] = None
-    street: Optional[str] = None
-    zip_code: Optional[str] = None
-    pix_resume: Optional[PixResume] = None
-
-class BankAccess(BaseModel):
-    username: str
-    password: str
-
-class SimulationRequest(BaseModel):
+class ProposalRequestCC(BaseModel):
     contact: Contact
-    bank_access: BankAccess
-
-class ProposalRequest(SimulationRequest):
-    bank_access: BankAccess
-    simulation: Optional[dict] = None
-    bank_account_info: Optional[BankAccountInfo] = None
+    bank_account_info: BankAccountInfo
+    bank_access: Dict[str, str]
 
 class FormalizationRequest(BaseModel):
-    bank_access: BankAccess
+    bank_access: Dict[str, str]
