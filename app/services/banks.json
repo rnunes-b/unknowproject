@@ -1,0 +1,306 @@
+[
+    {
+      "id": 1,
+      "code": "001",
+      "ispb": "00000000",
+      "name": "Banco do Brasil",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 6,
+      "code": "041",
+      "ispb": "92702067",
+      "name": "Banrisul",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 3,
+      "code": "237",
+      "ispb": "60746948",
+      "name": "Bradesco",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 2,
+      "code": "104",
+      "ispb": "00360305",
+      "name": "Caixa Econômica Federal",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 4,
+      "code": "341",
+      "ispb": "60701190",
+      "name": "Itaú",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 5,
+      "code": "033",
+      "ispb": "90400888",
+      "name": "Santander",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 306,
+      "code": "748",
+      "ispb": "01181521",
+      "name": "BANCO COOPERATIVO SICREDI S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 79,
+      "code": "003",
+      "ispb": "04902979",
+      "name": "BANCO DA AMAZONIA S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 82,
+      "code": "707",
+      "ispb": "62232889",
+      "name": "BANCO DAYCOVAL S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 98,
+      "code": "047",
+      "ispb": "13009717",
+      "name": "BANCO DO ESTADO DE SERGIPE S.A",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 101,
+      "code": "037",
+      "ispb": "04913711",
+      "name": "BANCO DO ESTADO DO PARA S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 103,
+      "code": "004",
+      "ispb": "07237373",
+      "name": "BANCO DO NORDESTE DO BRASIL S.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 314,
+      "code": "077",
+      "ispb": "00416968",
+      "name": "BANCO INTER",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 157,
+      "code": "389",
+      "ispb": "17184037",
+      "name": "BANCO MERCANTIL DO BRASIL S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 189,
+      "code": "422",
+      "ispb": "58160789",
+      "name": "BANCO SAFRA S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 581,
+      "code": "348",
+      "ispb": "33264668",
+      "name": "Banco XP",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 332,
+      "code": "756",
+      "ispb": "02038232",
+      "name": "BANCOOB",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 226,
+      "code": "021",
+      "ispb": "28127603",
+      "name": "BANESTES S.A BANCO DO ESTADO D",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 310,
+      "code": "070",
+      "ispb": "00000208",
+      "name": "BRB - BCO DE BRASILIA S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 307,
+      "code": "336",
+      "ispb": "31872495",
+      "name": "C6",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 561,
+      "code": "281",
+      "ispb": "76461557",
+      "name": "CCR COOPAVEL",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 328,
+      "code": "379",
+      "ispb": "01658426",
+      "name": "CECM COOPERFORTE",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 250,
+      "code": "114",
+      "ispb": "",
+      "name": "CECOOPES-CENTRAL DAS COOP DE E",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 251,
+      "code": "091",
+      "ispb": "",
+      "name": "CENTRAL DE COOPERATIVAS DE ECO",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 253,
+      "code": "477",
+      "ispb": "33042953",
+      "name": "CITIBANK N.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 312,
+      "code": "136",
+      "ispb": "00315557",
+      "name": "CONF NAC COOP CENTRAIS UNICRED",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 366,
+      "code": "085",
+      "ispb": "05463212",
+      "name": "COOP CENTRAL AILOS",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 256,
+      "code": "090",
+      "ispb": "",
+      "name": "COOPERATIVA CENTRAL DE CREDITO",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 257,
+      "code": "085",
+      "ispb": "",
+      "name": "COOPERATIVA CENTRAL DE CREDITO",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 255,
+      "code": "097",
+      "ispb": "",
+      "name": "COOPERATIVA CENTRAL DE CREDITO",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 258,
+      "code": "099",
+      "ispb": "",
+      "name": "COOPERATIVA CENTRAL ECONOMIA E",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 259,
+      "code": "322",
+      "ispb": "",
+      "name": "COOPERATIVA DE CREDITO RURAL D",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 580,
+      "code": "403",
+      "ispb": "37880206",
+      "name": "CORA SOCIEDADE DE CRÉDITO DIRETO S.A.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 260,
+      "code": "098",
+      "ispb": "",
+      "name": "CREDIALIANÇA COOP DE CREDITO RURAL",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 357,
+      "code": "097",
+      "ispb": "04632856",
+      "name": "EDISIS CENTRAL DE COOPERATIVAS DE CRÉDITO LTDA.",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 367,
+      "code": "114",
+      "ispb": "05790149",
+      "name": "NTRAL COOPERATIVA DE CRÉDITO NO ESTADO DO ESPÍRITO SANTO",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 308,
+      "code": "260",
+      "ispb": "18236120",
+      "name": "Nubank",
+      "digital": 0,
+      "only_commission": 0
+    },
+    {
+      "id": 351,
+      "code": "190",
+      "ispb": "03973814",
+      "name": "SERVICOOP",
+      "digital": 0,
+      "only_commission": 0
+    }
+  ]
