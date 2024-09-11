@@ -8,3 +8,4 @@ static/node_modules
 templates/__init__.py
 templates/components
 templates/errors
+.env

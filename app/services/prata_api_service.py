@@ -3,11 +3,16 @@ from app.utils import format_result, format_cpf, format_date, format_phone
 from app.exceptions import BotProposalInfoException, BotUnauthorizedException
 import httpx
 import time
+from dotenv import load_dotenv
 import traceback
+import os
+
+load_dotenv()
 
 
 class PrataApiService:
     def __init__(self):
+        self.proxy_url = os.getenv("PROXY_URL")
         self.login_url = "https://api.bancoprata.com.br/v1/users/login"
         self.simulate_proposal_url = (
             "https://api.bancoprata.com.br/v1/qitech/fgts/balance"
@@ -33,6 +38,15 @@ class PrataApiService:
         self.retry_attempts = 3
         self.retry_delay = 5
 
+    async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        async with httpx.AsyncClient(
+            proxies={"http://": self.proxy_url, "https://": self.proxy_url},
+            verify=self.ssl_context,
+        ) as client:
+            response = await client.request(method, url, **kwargs)
+            response.raise_for_status()
+            return response
+
     async def authenticate(self, data: Dict[str, Any]) -> str:
         try:
             user_data = data["bank_access"]
@@ -41,10 +55,9 @@ class PrataApiService:
                 "password": user_data["password"],
             }
 
-            async with httpx.AsyncClient() as client:
-                response = await client.post(self.login_url, json=payload, timeout=10)
-                response.raise_for_status()
-
+            response = await self._make_request(
+                "POST", self.login_url, json=payload, timeout=10
+            )
             context = response.json()
             return context["data"]["token"]
 
@@ -62,12 +75,10 @@ class PrataApiService:
         cpf = format_cpf(data["contact"]["cpf"])
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.simulate_proposal_url}?document={cpf}", headers=headers
-                )
-                response.raise_for_status()
-                result = response.json()
+            response = await self._make_request(
+                "GET", f"{self.simulate_proposal_url}?document={cpf}", headers=headers
+            )
+            result = response.json()
 
             if not result.get("data"):
                 raise BotProposalInfoException(
@@ -324,12 +335,10 @@ class PrataApiService:
 
     async def _send_request(self, url, headers, data):
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url, json=data, headers=headers, timeout=10
-                )
-                response.raise_for_status()
-                return response.json()
+            response = await self._make_request(
+                "POST", url, json=data, headers=headers, timeout=10
+            )
+            return response.json()
         except httpx.RequestError as error:
             traceback.print_exc()
             raise BotProposalInfoException(str(error.response.status_code))
