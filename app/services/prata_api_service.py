@@ -5,20 +5,31 @@ import httpx
 import time
 import traceback
 
+
 class PrataApiService:
     def __init__(self):
         self.login_url = "https://api.bancoprata.com.br/v1/users/login"
-        self.simulate_proposal_url = "https://api.bancoprata.com.br/v1/qitech/fgts/balance"
-        self.status_url = "https://api.bancoprata.com.br/v1/qitech/fgts/balance-wait-list"
+        self.simulate_proposal_url = (
+            "https://api.bancoprata.com.br/v1/qitech/fgts/balance"
+        )
+        self.status_url = (
+            "https://api.bancoprata.com.br/v1/qitech/fgts/balance-wait-list"
+        )
         self.pix_url = "https://api.bancoprata.com.br/v1/payments/bank-account/info"
         self.first_stage = "https://api.bancoprata.com.br/v1/clients/account/admin"
-        self.second_stage = "https://api.bancoprata.com.br/v1/clients/qualification/admin"
+        self.second_stage = (
+            "https://api.bancoprata.com.br/v1/clients/qualification/admin"
+        )
         self.third_stage = "https://api.bancoprata.com.br/v1/clients/address/admin"
-        self.fourth_stage = "https://api.bancoprata.com.br/v1/clients/bank-account/admin"
+        self.fourth_stage = (
+            "https://api.bancoprata.com.br/v1/clients/bank-account/admin"
+        )
         self.send_proposal_url = "https://api.bancoprata.com.br/v1/proposals/admin"
         self.detail_url = "https://api.bancoprata.com.br/v1/proposals/"
         self.proposals_url = "https://ymlzcthbmqcpwaiwcg3hikmbpa0rsehz.lambda-url.us-east-1.on.aws/v1/proposals?product_id=3"
-        self.formalization_url = "https://api.bancoprata.com.br/v1/anti-fraud?account_id="
+        self.formalization_url = (
+            "https://api.bancoprata.com.br/v1/anti-fraud?account_id="
+        )
         self.retry_attempts = 3
         self.retry_delay = 5
 
@@ -39,9 +50,7 @@ class PrataApiService:
 
         except httpx.RequestError as error:
             traceback.print_exc()
-            raise BotUnauthorizedException(
-                f"Erro de autenticação: {str(error)}"
-            )
+            raise BotUnauthorizedException(f"Erro de autenticação: {str(error)}")
         except (KeyError, ValueError) as e:
             raise BotUnauthorizedException(f"Dados inválidos: {str(e)}")
         except Exception as e:
@@ -70,7 +79,7 @@ class PrataApiService:
 
             if not result["data"].get("issue_amount"):
                 return await self.fetch_filtered_status(data)
-            
+
             strategy_result = await self.fetch_check_value(data, cpf)
 
             pix_result = await self.fetch_pix(data, cpf)
@@ -86,9 +95,7 @@ class PrataApiService:
 
         except httpx.RequestError as e:
             traceback.print_exc()
-            raise BotProposalInfoException(
-                f"Erro na simulação: {str(e)}"
-            )
+            raise BotProposalInfoException(f"Erro na simulação: {str(e)}")
 
     async def fetch_filtered_status(self, data):
         token = await self.authenticate(data)
@@ -139,7 +146,7 @@ class PrataApiService:
                 return format_result(resume)
         except httpx.RequestError:
             raise BotProposalInfoException(strategy.json())
-            
+
     async def fetch_pix(self, data, cpf):
         token = await self.authenticate(data)
         headers = {"Authorization": f"Bearer {token}"}
@@ -187,51 +194,57 @@ class PrataApiService:
             await self._send_pix_stage(pix_fields, headers, account_id, cpf)
 
             proposal = await self._send_last_stage(pix_fields, headers, account_id)
-            url = await self.get_formalization_url(data, proposal["proposal_identifier"])
+            url = await self.get_formalization_url(
+                data, proposal["proposal_identifier"]
+            )
 
             return {"resume": proposal["proposal_number"], "formalization_url": url}
         except httpx.RequestError as e:
             traceback.print_exc()
             raise BotProposalInfoException(str(e))
-            
+
     async def send_proposal_cc(self, data):
-            try:
-                token = await self.authenticate(data)
-                headers = {"Authorization": f"Bearer {token}"}
+        try:
+            token = await self.authenticate(data)
+            headers = {"Authorization": f"Bearer {token}"}
 
-                simulation_result = await self.simulate_fgts(data)
-                common_fields = {
-                    "contract_balance": simulation_result["contract_balance"],
-                    "amount_released": simulation_result["amount_released"],
-                }
+            simulation_result = await self.simulate_fgts(data)
+            common_fields = {
+                "contract_balance": simulation_result["contract_balance"],
+                "amount_released": simulation_result["amount_released"],
+            }
 
-                account_id = await self._send_first_stage(data, headers)
-                await self._send_second_stage(data, headers, account_id)
-                await self._send_third_stage(data, headers, account_id)
+            account_id = await self._send_first_stage(data, headers)
+            await self._send_second_stage(data, headers, account_id)
+            await self._send_third_stage(data, headers, account_id)
 
-                bank_account_fields = {
-                    **common_fields,
-                    **data["bank_account_info"],
-                    "input_type": "manual",
-                }
-                await self._send_bank_account_stage(bank_account_fields, headers, account_id)
+            bank_account_fields = {
+                **common_fields,
+                **data["bank_account_info"],
+                "input_type": "manual",
+            }
+            await self._send_bank_account_stage(
+                bank_account_fields, headers, account_id
+            )
 
-                proposal = await self._send_last_stage(bank_account_fields, headers, account_id)
-                url = await self.get_formalization_url(data, proposal["proposal_identifier"])
+            proposal = await self._send_last_stage(
+                bank_account_fields, headers, account_id
+            )
+            url = await self.get_formalization_url(
+                data, proposal["proposal_identifier"]
+            )
 
-                return {"resume": proposal["proposal_number"], "formalization_url": url}
-            except httpx.RequestError as e:
-                traceback.print_exc()
-                raise BotProposalInfoException(str(e))
+            return {"resume": proposal["proposal_number"], "formalization_url": url}
+        except httpx.RequestError as e:
+            traceback.print_exc()
+            raise BotProposalInfoException(str(e))
 
     async def _send_first_stage(self, data, headers):
         first_stage = {
             "birthdate": format_date(data["contact"]["birthdate"]),
             "document": format_cpf(data["contact"]["cpf"]),
             "email": "falecom@bancoprata.com.br",
-            "gender": (
-                "Masculino" if data["contact"]["gender"] == "M" else "Feminino"
-            ),
+            "gender": ("Masculino" if data["contact"]["gender"] == "M" else "Feminino"),
             "name": data["contact"]["name"],
             "phone": format_phone(data["contact"]["phone"]),
         }
@@ -244,9 +257,7 @@ class PrataApiService:
             "alimony": "",
             "company_document": "",
             "dependents": "",
-            "document_issued_at": format_date(
-                data["contact"]["document_issue_date"]
-            ),
+            "document_issued_at": format_date(data["contact"]["document_issue_date"]),
             "document_number": data["contact"]["document"],
             "document_state": data["contact"]["document_federation_unit"],
             "document_type": data["contact"]["document_type"],
@@ -280,7 +291,7 @@ class PrataApiService:
             "pix_key": cpf,
         }
         await self._send_request(self.fourth_stage, headers, pix_stage)
-    
+
     async def _send_bank_account_stage(self, bank_account_info, headers, account_id):
         bank_account_stage = {
             "account_created_at": "",
@@ -314,12 +325,14 @@ class PrataApiService:
     async def _send_request(self, url, headers, data):
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=data, headers=headers, timeout=10)
+                response = await client.post(
+                    url, json=data, headers=headers, timeout=10
+                )
                 response.raise_for_status()
                 return response.json()
-        except httpx.RequestError as e:
+        except httpx.RequestError as error:
             traceback.print_exc()
-            raise BotProposalInfoException(str(e))
+            raise BotProposalInfoException(str(error.response.status_code))
 
     @staticmethod
     def create_pix_resume(pix_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -361,28 +374,29 @@ class PrataApiService:
                     "status": "Error",
                     "message": f"Ocorreu um erro ao buscar o link de formalização. Status: {e.response.status_code}. Por favor, tente novamente mais tarde.",
                 }
-        except httpx.RequestError as e:
-            return {
-                "status": "Error",
-                "message": f"Ocorreu um erro de conexão ao buscar o link de formalização: {str(e)}. Por favor, tente novamente mais tarde.",
-            }
+        except httpx.RequestError as error:
+            return {"status_code": error.response.status_code}
+        except Exception:
+            return {"status_code": 500}
 
     async def _get_pix(self, data, cpf):
-            token = await self.authenticate(data)
-            headers = {"Authorization": f"Bearer {token}"}
+        token = await self.authenticate(data)
+        headers = {"Authorization": f"Bearer {token}"}
 
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
-                    )
-                    response.raise_for_status()
-                    return {"data": response.json()["data"]}
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 404:
-                    data = response.json()
-                    raise BotProposalInfoException(data["error"]["message"])
-                else:
-                    raise BotProposalInfoException(response.json())
-            except httpx.RequestError:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
+                )
+                response.raise_for_status()
+                return {"data": response.json()["data"]}
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                data = response.json()
+                raise BotProposalInfoException(data["error"]["message"])
+            else:
                 raise BotProposalInfoException(response.json())
+        except httpx.RequestError as error:
+            raise BotProposalInfoException(error.response.status_code)
+        except Exception:
+            return {"status_code": 500}
