@@ -34,9 +34,9 @@ async def simulate_fgts(
 ):
     try:
         return await prata_service.simulate_fgts(data.dict())
-    except Exception:
+    except Exception as error:
         traceback.print_exc()
-        raise HTTPException(status_code=400)
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @router.post("/send_proposal_pix")
@@ -48,8 +48,8 @@ async def send_proposal_pix(
         proposal_data = data.dict(exclude_unset=True)
         proposal_data["send_method"] = "pix"
         return await prata_service.send_proposal_pix(proposal_data)
-    except Exception:
-        raise HTTPException(status_code=400)
+    except Exception as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @router.post("/send_proposal_cc")
@@ -60,8 +60,8 @@ async def send_proposal_cc(
         proposal_data = data.dict(exclude_unset=True)
         proposal_data["send_method"] = "bank_account"
         return await prata_service.send_proposal_cc(proposal_data)
-    except Exception:
-        raise HTTPException(status_code=400)
+    except Exception as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @router.get("/get_formalization_url/{proposal_id}")
@@ -73,8 +73,8 @@ async def get_formalization_url(
     try:
         result = await prata_service.get_formalization_url(data.dict(), proposal_id)
         return {"link": result}
-    except Exception:
-        raise HTTPException(status_code=400)
+    except Exception as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @router.get("/get_pix_infos/{cpf}")
@@ -85,7 +85,7 @@ async def get_pix_infos(
         result = await prata_service._get_pix(data, cpf)
         return get_bank_info(result)
     except Exception:
-        raise HTTPException(status_code=400)
+        raise HTTPException(status_code=400, detail="Erro ao buscar informações do PIX")
 
 
 @router.get("/banks")
