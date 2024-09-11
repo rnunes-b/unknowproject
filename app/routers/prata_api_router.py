@@ -73,7 +73,7 @@ async def get_formalization_url(
     try:
         result = await prata_service.get_formalization_url(data.dict(), proposal_id)
         return {"link": result}
-    except Exception
+    except Exception:
         raise HTTPException(status_code=400)
 
 
