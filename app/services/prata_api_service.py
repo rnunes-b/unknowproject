@@ -37,6 +37,7 @@ class PrataApiService:
         )
         self.retry_attempts = 3
         self.retry_delay = 5
+        self.token = None
 
     async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         async with httpx.AsyncClient(
@@ -48,6 +49,9 @@ class PrataApiService:
             return response
 
     async def authenticate(self, data: Dict[str, Any]) -> str:
+        if self.token:
+            return self.token
+
         try:
             user_data = data["bank_access"]
             payload = {
@@ -59,7 +63,8 @@ class PrataApiService:
                 "POST", self.login_url, json=payload, timeout=10
             )
             context = response.json()
-            return context["data"]["token"]
+            self.token = context["data"]["token"]
+            return self.token
 
         except httpx.RequestError as error:
             traceback.print_exc()
@@ -69,9 +74,13 @@ class PrataApiService:
         except Exception as e:
             raise BotUnauthorizedException(f"Erro inesperado: {str(e)}")
 
+    async def get_auth_headers(self, data: Dict[str, Any]) -> Dict[str, str]:
+        if not self.token:
+            await self.authenticate(data)
+        return {"Authorization": f"Bearer {self.token}"}
+
     async def simulate_fgts(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = await self.get_auth_headers(data)
         cpf = format_cpf(data["contact"]["cpf"])
 
         try:
@@ -109,8 +118,7 @@ class PrataApiService:
             raise BotProposalInfoException(f"Erro na simulação: {str(e)}")
 
     async def fetch_filtered_status(self, data):
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = await self.get_auth_headers(data)
         cpf = format_cpf(data["contact"]["cpf"])
 
         for attempt in range(self.retry_attempts):
@@ -145,8 +153,7 @@ class PrataApiService:
                     )
 
     async def fetch_check_value(self, data, cpf):
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = await self.get_auth_headers(data)
         try:
             async with httpx.AsyncClient() as client:
                 strategy = await client.get(
@@ -159,8 +166,7 @@ class PrataApiService:
             raise BotProposalInfoException(strategy.json())
 
     async def fetch_pix(self, data, cpf):
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = await self.get_auth_headers(data)
 
         try:
             async with httpx.AsyncClient() as client:
@@ -179,8 +185,7 @@ class PrataApiService:
 
     async def send_proposal_pix(self, data):
         try:
-            token = await self.authenticate(data)
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = await self.get_auth_headers(data)
             cpf = format_cpf(data["contact"]["cpf"])
 
             simulation_result = await self.simulate_fgts(data)
@@ -216,8 +221,7 @@ class PrataApiService:
 
     async def send_proposal_cc(self, data):
         try:
-            token = await self.authenticate(data)
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = await self.get_auth_headers(data)
 
             simulation_result = await self.simulate_fgts(data)
             common_fields = {
@@ -359,9 +363,7 @@ class PrataApiService:
 
     async def get_formalization_url(self, data, proposal_id):
         try:
-            token = await self.authenticate(data)
-            headers = {"Authorization": f"Bearer {token}"}
-
+            headers = await self.get_auth_headers(data)
             url = f"{self.formalization_url}{proposal_id}"
 
             async with httpx.AsyncClient() as client:
@@ -389,8 +391,7 @@ class PrataApiService:
             return {"status_code": 500}
 
     async def _get_pix(self, data, cpf):
-        token = await self.authenticate(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = await self.get_auth_headers(data)
 
         try:
             async with httpx.AsyncClient() as client:
