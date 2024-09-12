@@ -42,7 +42,6 @@ class PrataApiService:
     async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         async with httpx.AsyncClient(
             proxies={"http://": self.proxy_url, "https://": self.proxy_url},
-            verify=self.ssl_context,
         ) as client:
             response = await client.request(method, url, **kwargs)
             response.raise_for_status()
