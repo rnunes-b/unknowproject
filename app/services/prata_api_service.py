@@ -57,6 +57,8 @@ class PrataApiService:
                 "email": user_data["username"],
                 "password": user_data["password"],
             }
+            print(payload)
+            print(self.proxy_url)
 
             response = await self._make_request(
                 "POST", self.login_url, json=payload, timeout=10
