@@ -175,9 +175,7 @@ class PrataApiService:
                 try:
                     result = response.json()
                 except json.JSONDecodeError:
-                    print(
-                        f"Failed to decode JSON. Response content: {response.text[:200]}..."
-                    )
+
                     if attempt < self.retry_attempts - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -241,24 +239,19 @@ class PrataApiService:
             try:
                 resume = response.json()
             except json.JSONDecodeError:
-                print("Failed to decode JSON. Response might not be JSON.")
                 if response.text.strip() == "":
-                    print("Response is empty.")
                     raise BotProposalInfoException(
                         "Received empty response from server"
                     )
                 else:
-                    print(f"Non-JSON response: {response.text}")
                     raise BotProposalInfoException(
                         f"Received non-JSON response: {response.text[:100]}..."
                     )
 
             return format_result(resume)
         except httpx.RequestError as error:
-            print(f"Request error in fetch_check_value: {error}")
             raise BotProposalInfoException(f"Error fetching data: {str(error)}")
         except Exception as e:
-            print(f"Unexpected error in fetch_check_value: {e}")
             raise BotProposalInfoException(f"Unexpected error: {str(e)}")
 
     async def fetch_pix(self, data, cpf):
@@ -512,14 +505,11 @@ class PrataApiService:
             try:
                 pix_data = response.json()
             except json.JSONDecodeError:
-                print("Failed to decode JSON. Response might not be JSON.")
                 if response.text.strip() == "":
-                    print("Response is empty.")
                     raise BotProposalInfoException(
                         "Received empty response from server"
                     )
                 else:
-                    print(f"Non-JSON response: {response.text}")
                     raise BotProposalInfoException(
                         f"Received non-JSON response: {response.text[:100]}..."
                     )
@@ -529,8 +519,6 @@ class PrataApiService:
 
             return {"data": pix_data["data"]}
         except httpx.RequestError as error:
-            print(f"Request error in get_pix: {error}")
             raise BotProposalInfoException(f"Error fetching PIX data: {str(error)}")
         except Exception as e:
-            print(f"Unexpected error in get_pix: {e}")
             raise BotProposalInfoException(f"Unexpected error: {str(e)}")
