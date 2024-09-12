@@ -469,7 +469,6 @@ class PrataApiService:
     @staticmethod
     def create_pix_resume(pix_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "cpf": pix_data["key"],
             "bank_name": pix_data["bankName"],
             "client_name": pix_data["name"],
             "account_number": pix_data["accountNumber"],
