@@ -147,15 +147,14 @@ class PrataApiService:
 
             strategy_result = await self.fetch_check_value(data, cpf)
 
-            # pix_result = await self.fetch_pix(data, cpf)
-            # pix_result = None
+            pix_result = await self.fetch_pix(data, cpf)
 
-            # if pix_result["data"]:
-            #     pix_resume = self.create_pix_resume(pix_result["data"])
-            # else:
-            #     pix_resume = None
+            if pix_result["data"]:
+                pix_resume = self.create_pix_resume(pix_result["data"])
+            else:
+                pix_resume = None
 
-            # strategy_result["pix_resume"] = pix_resume
+            strategy_result["pix_resume"] = pix_resume
 
             return strategy_result
 
@@ -264,21 +263,44 @@ class PrataApiService:
 
     async def fetch_pix(self, data, cpf):
         headers = await self.get_auth_headers(data)
-
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
-                )
-                response.raise_for_status()
-                return response.json()
+            response = await self._make_request(
+                "GET",
+                f"{self.pix_url}?pix_key={cpf}&btn_clicked=true",
+                headers=headers,
+            )
+
+            try:
+                pix_data = response.json()
+            except json.JSONDecodeError:
+                if response.text.strip() == "":
+                    raise BotProposalInfoException(
+                        "Received empty response from server"
+                    )
+                else:
+                    raise BotProposalInfoException(
+                        f"Received non-JSON response: {response.text[:100]}..."
+                    )
+
+            if not pix_data.get("data"):
+                return {"data": None}
+
+            return pix_data
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return {"data": None}
             else:
-                raise BotProposalInfoException(response.json())
-        except httpx.RequestError:
-            raise BotProposalInfoException(response.json())
+                try:
+                    error_data = e.response.json()
+                    raise BotProposalInfoException(error_data)
+                except json.JSONDecodeError:
+                    raise BotProposalInfoException(
+                        f"HTTP error {e.response.status_code}: {e.response.text[:100]}..."
+                    )
+        except httpx.RequestError as error:
+            raise BotProposalInfoException(f"{str(error)}")
+        except Exception as e:
+            raise BotProposalInfoException(f" {str(e)}")
 
     async def send_proposal_pix(self, data):
         try:
