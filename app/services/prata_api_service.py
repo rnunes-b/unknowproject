@@ -2,12 +2,11 @@ from typing import Dict, Any
 from app.utils import format_result, format_cpf, format_date, format_phone
 from app.exceptions import BotProposalInfoException, BotUnauthorizedException
 import httpx
-import time
 from dotenv import load_dotenv
 import traceback
 import os
 import json
-
+import asyncio
 
 load_dotenv()
 
@@ -170,34 +169,66 @@ class PrataApiService:
 
         for attempt in range(self.retry_attempts):
             try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        f"{self.status_url}?product_id=3", headers=headers
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    filtered_status_reasons = [
-                        item["status_reason"]
-                        for item in result.get("data", [])
-                        if item.get("document") == cpf and item.get("status_reason")
-                    ]
-                    if filtered_status_reasons:
-                        raise BotProposalInfoException(filtered_status_reasons[0])
+                response = await self._make_request(
+                    "GET", f"{self.status_url}?product_id=3", headers=headers
+                )
 
+                try:
+                    result = response.json()
+                except json.JSONDecodeError:
+                    print(
+                        f"Failed to decode JSON. Response content: {response.text[:200]}..."
+                    )
                     if attempt < self.retry_attempts - 1:
-                        time.sleep(self.retry_delay)
+                        await asyncio.sleep(self.retry_delay)
+                        continue
                     else:
                         raise BotProposalInfoException(
-                            "Status ainda não disponível, tentar novamente mais tarde",
+                            "Invalid JSON response from status endpoint"
                         )
+
+                filtered_status_reasons = [
+                    item["status_reason"]
+                    for item in result.get("data", [])
+                    if item.get("document") == cpf and item.get("status_reason")
+                ]
+                if filtered_status_reasons:
+                    raise BotProposalInfoException(filtered_status_reasons[0])
+
+                if attempt < self.retry_attempts - 1:
+                    await asyncio.sleep(self.retry_delay)
+                else:
+                    raise BotProposalInfoException(
+                        "Status ainda não disponível, tentar novamente mais tarde"
+                    )
+
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    raise BotProposalInfoException(
+                        "Acesso não autorizado ao status filtrado"
+                    )
+                elif attempt < self.retry_attempts - 1:
+                    await asyncio.sleep(self.retry_delay)
+                else:
+                    raise BotProposalInfoException(
+                        f"Erro ao buscar status: {e.response.status_code}"
+                    )
 
             except httpx.RequestError:
                 if attempt < self.retry_attempts - 1:
-                    time.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay)
                 else:
                     raise BotProposalInfoException(
                         "Erro ao buscar status, tente novamente mais tarde"
                     )
+
+            except Exception as e:
+                if attempt < self.retry_attempts - 1:
+                    await asyncio.sleep(self.retry_delay)
+                else:
+                    raise BotProposalInfoException(f"{str(e)}")
+
+        raise BotProposalInfoException("Falha ao obter status após várias tentativas")
 
     # async def fetch_check_value(self, data, cpf):
     #     headers = await self.get_auth_headers(data)
@@ -220,10 +251,6 @@ class PrataApiService:
                 f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
                 headers=headers,
             )
-
-            print(f"Response status: {response.status_code}")
-            print(f"Response headers: {response.headers}")
-            print(f"Response content: {response.text}")
 
             try:
                 resume = response.json()
