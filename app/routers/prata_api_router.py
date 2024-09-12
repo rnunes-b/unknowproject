@@ -85,6 +85,7 @@ async def get_pix_infos(
         result = await prata_service._get_pix(data, cpf)
         return get_bank_info(result)
     except Exception:
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail="Erro ao buscar informações do PIX")
 
 
