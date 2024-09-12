@@ -40,9 +40,11 @@ class PrataApiService:
         self.retry_attempts = 3
         self.retry_delay = 5
         self.token = None
+        self.client = None
+        self.cookies = httpx.Cookies()
 
     async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
-        headers = {
+        headers_agent = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7",
@@ -52,19 +54,23 @@ class PrataApiService:
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "same-origin",
             "Sec-Fetch-Dest": "document",
+            "DNT": "1",
+            "Accept-Encoding": "gzip, deflate",
+            "Cache-Control": "max-age=0",
         }
-
-        if "headers" in kwargs:
-            headers.update(kwargs["headers"])
-        kwargs["headers"] = headers
+        if self.client is None:
+            self.client = httpx.AsyncClient(
+                proxies={"http://": self.proxy_url, "https://": self.proxy_url},
+                headers=headers_agent,
+                cookies=self.cookies,
+            )
 
         try:
-            async with httpx.AsyncClient(
-                proxies={"http://": self.proxy_url, "https://": self.proxy_url},
-            ) as client:
-                response = await client.request(method, url, **kwargs)
-                response.raise_for_status()
-                return response
+            response = await self.client.request(method, url, **kwargs)
+            response.raise_for_status()
+            self.cookies.update(response.cookies)
+
+            return response
         except httpx.HTTPStatusError as e:
             error_message = f"HTTP error: {e.response.status_code}"
             try:
