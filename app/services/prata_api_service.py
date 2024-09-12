@@ -48,15 +48,18 @@ class PrataApiService:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Ch-Ua": 'Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123',
-            "Sec-Fetch-User": "?1",
+            "Accept-Encoding": "gzip, deflate",
+            "Referer": "https://api.bancoprata.com.br/",
+            "Sec-Ch-Ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "same-origin",
-            "Sec-Fetch-Dest": "document",
-            "DNT": "1",
-            "Accept-Encoding": "gzip, deflate",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1",
             "Cache-Control": "max-age=0",
+            "Connection": "keep-alive",
         }
         if self.client is None:
             self.client = httpx.AsyncClient(
@@ -139,14 +142,15 @@ class PrataApiService:
 
             strategy_result = await self.fetch_check_value(data, cpf)
 
-            pix_result = await self.fetch_pix(data, cpf)
+            # pix_result = await self.fetch_pix(data, cpf)
+            # pix_result = None
 
-            if pix_result["data"]:
-                pix_resume = self.create_pix_resume(pix_result["data"])
-            else:
-                pix_resume = None
+            # if pix_result["data"]:
+            #     pix_resume = self.create_pix_resume(pix_result["data"])
+            # else:
+            #     pix_resume = None
 
-            strategy_result["pix_resume"] = pix_resume
+            # strategy_result["pix_resume"] = pix_resume
 
             return strategy_result
 
@@ -419,26 +423,26 @@ class PrataApiService:
                     "message": f"Ocorreu um erro ao buscar o link de formalização. Erro: {str(e)}. Por favor, tente novamente mais tarde.",
                 }
 
-    async def _get_pix(self, data, cpf):
-        headers = await self.get_auth_headers(data)
+    # async def _get_pix(self, data, cpf):
+    #     headers = await self.get_auth_headers(data)
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
-                )
-                response.raise_for_status()
-                return {"data": response.json()["data"]}
-        except httpx.HTTPStatusError as e:
-            error_message = f"HTTP error: {e.response.status_code}"
-            try:
-                error_data = e.response.json()
-                if isinstance(error_data, dict) and "error" in error_data:
-                    error_message = error_data["error"].get("message", error_message)
-            except json.JSONDecodeError:
-                error_message += f" - Response: {e.response.text}"
-            raise BotProposalInfoException(error_message)
-        except httpx.RequestError as error:
-            raise BotProposalInfoException(f"Request error: {str(error)}")
-        except Exception as e:
-            raise BotProposalInfoException(f"Unexpected error: {str(e)}")
+    #     try:
+    #         async with httpx.AsyncClient() as client:
+    #             response = await client.get(
+    #                 f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
+    #             )
+    #             response.raise_for_status()
+    #             return {"data": response.json()["data"]}
+    #     except httpx.HTTPStatusError as e:
+    #         error_message = f"HTTP error: {e.response.status_code}"
+    #         try:
+    #             error_data = e.response.json()
+    #             if isinstance(error_data, dict) and "error" in error_data:
+    #                 error_message = error_data["error"].get("message", error_message)
+    #         except json.JSONDecodeError:
+    #             error_message += f" - Response: {e.response.text}"
+    #         raise BotProposalInfoException(error_message)
+    #     except httpx.RequestError as error:
+    #         raise BotProposalInfoException(f"Request error: {str(error)}")
+    #     except Exception as e:
+    #         raise BotProposalInfoException(f"Unexpected error: {str(e)}")
