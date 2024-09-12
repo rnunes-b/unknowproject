@@ -64,7 +64,7 @@ async def send_proposal_cc(
         raise HTTPException(status_code=400, detail=str(error))
 
 
-@router.get("/get_formalization_url/{proposal_id}")
+@router.post("/get_formalization_url/{proposal_id}")
 async def get_formalization_url(
     proposal_id: str,
     data: FormalizationRequest,
@@ -77,7 +77,7 @@ async def get_formalization_url(
         raise HTTPException(status_code=400, detail=str(error))
 
 
-@router.get("/get_pix_infos/{cpf}")
+@router.post("/get_pix_infos/{cpf}")
 async def get_pix_infos(
     cpf: str, data: dict, prata_service: PrataApiService = Depends(get_prata_service)
 ):
