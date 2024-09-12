@@ -82,7 +82,7 @@ async def get_pix_infos(
     cpf: str, data: dict, prata_service: PrataApiService = Depends(get_prata_service)
 ):
     try:
-        result = await prata_service._get_pix(data, cpf)
+        result = await prata_service.get_pix(data, cpf)
         return get_bank_info(result)
     except Exception:
         traceback.print_exc()

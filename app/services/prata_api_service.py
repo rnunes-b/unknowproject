@@ -230,19 +230,6 @@ class PrataApiService:
 
         raise BotProposalInfoException("Falha ao obter status após várias tentativas")
 
-    # async def fetch_check_value(self, data, cpf):
-    #     headers = await self.get_auth_headers(data)
-    #     try:
-    #         async with httpx.AsyncClient() as client:
-    #             strategy = await client.get(
-    #                 f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
-    #                 headers=headers,
-    #             )
-    #             resume = strategy.json()
-    #             return format_result(resume)
-    #     except httpx.RequestError:
-    #         raise BotProposalInfoException(strategy.json())
-
     async def fetch_check_value(self, data, cpf):
         headers = await self.get_auth_headers(data)
         try:
@@ -492,26 +479,37 @@ class PrataApiService:
                     "message": f"Ocorreu um erro ao buscar o link de formalização. Erro: {str(e)}. Por favor, tente novamente mais tarde.",
                 }
 
-    # async def _get_pix(self, data, cpf):
-    #     headers = await self.get_auth_headers(data)
+    async def get_pix(self, data, cpf):
+        headers = await self.get_auth_headers(data)
+        try:
+            response = await self._make_request(
+                "GET",
+                f"{self.pix_url}?pix_key={cpf}&btn_clicked=true",
+                headers=headers,
+            )
 
-    #     try:
-    #         async with httpx.AsyncClient() as client:
-    #             response = await client.get(
-    #                 f"{self.pix_url}?pix_key={cpf}&btn_clicked=true", headers=headers
-    #             )
-    #             response.raise_for_status()
-    #             return {"data": response.json()["data"]}
-    #     except httpx.HTTPStatusError as e:
-    #         error_message = f"HTTP error: {e.response.status_code}"
-    #         try:
-    #             error_data = e.response.json()
-    #             if isinstance(error_data, dict) and "error" in error_data:
-    #                 error_message = error_data["error"].get("message", error_message)
-    #         except json.JSONDecodeError:
-    #             error_message += f" - Response: {e.response.text}"
-    #         raise BotProposalInfoException(error_message)
-    #     except httpx.RequestError as error:
-    #         raise BotProposalInfoException(f"Request error: {str(error)}")
-    #     except Exception as e:
-    #         raise BotProposalInfoException(f"Unexpected error: {str(e)}")
+            try:
+                pix_data = response.json()
+            except json.JSONDecodeError:
+                print("Failed to decode JSON. Response might not be JSON.")
+                if response.text.strip() == "":
+                    print("Response is empty.")
+                    raise BotProposalInfoException(
+                        "Received empty response from server"
+                    )
+                else:
+                    print(f"Non-JSON response: {response.text}")
+                    raise BotProposalInfoException(
+                        f"Received non-JSON response: {response.text[:100]}..."
+                    )
+
+            if not pix_data.get("data"):
+                return {"data": None}
+
+            return {"data": pix_data["data"]}
+        except httpx.RequestError as error:
+            print(f"Request error in get_pix: {error}")
+            raise BotProposalInfoException(f"Error fetching PIX data: {str(error)}")
+        except Exception as e:
+            print(f"Unexpected error in get_pix: {e}")
+            raise BotProposalInfoException(f"Unexpected error: {str(e)}")
