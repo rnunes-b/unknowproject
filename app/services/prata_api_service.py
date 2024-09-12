@@ -199,18 +199,54 @@ class PrataApiService:
                         "Erro ao buscar status, tente novamente mais tarde"
                     )
 
+    # async def fetch_check_value(self, data, cpf):
+    #     headers = await self.get_auth_headers(data)
+    #     try:
+    #         async with httpx.AsyncClient() as client:
+    #             strategy = await client.get(
+    #                 f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
+    #                 headers=headers,
+    #             )
+    #             resume = strategy.json()
+    #             return format_result(resume)
+    #     except httpx.RequestError:
+    #         raise BotProposalInfoException(strategy.json())
+
     async def fetch_check_value(self, data, cpf):
         headers = await self.get_auth_headers(data)
         try:
-            async with httpx.AsyncClient() as client:
-                strategy = await client.get(
-                    f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
-                    headers=headers,
-                )
-                resume = strategy.json()
-                return format_result(resume)
-        except httpx.RequestError:
-            raise BotProposalInfoException(strategy.json())
+            response = await self._make_request(
+                "GET",
+                f"{self.simulate_proposal_url}?document={cpf}&rate_id=16",
+                headers=headers,
+            )
+
+            print(f"Response status: {response.status_code}")
+            print(f"Response headers: {response.headers}")
+            print(f"Response content: {response.text}")
+
+            try:
+                resume = response.json()
+            except json.JSONDecodeError:
+                print("Failed to decode JSON. Response might not be JSON.")
+                if response.text.strip() == "":
+                    print("Response is empty.")
+                    raise BotProposalInfoException(
+                        "Received empty response from server"
+                    )
+                else:
+                    print(f"Non-JSON response: {response.text}")
+                    raise BotProposalInfoException(
+                        f"Received non-JSON response: {response.text[:100]}..."
+                    )
+
+            return format_result(resume)
+        except httpx.RequestError as error:
+            print(f"Request error in fetch_check_value: {error}")
+            raise BotProposalInfoException(f"Error fetching data: {str(error)}")
+        except Exception as e:
+            print(f"Unexpected error in fetch_check_value: {e}")
+            raise BotProposalInfoException(f"Unexpected error: {str(e)}")
 
     async def fetch_pix(self, data, cpf):
         headers = await self.get_auth_headers(data)
