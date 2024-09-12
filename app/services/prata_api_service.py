@@ -46,26 +46,27 @@ class PrataApiService:
     async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         headers_agent = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7",
             "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
             "Referer": "https://api.bancoprata.com.br/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-User": "?1",
             "Sec-Ch-Ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "same-origin",
-            "Sec-Fetch-User": "?1",
             "Upgrade-Insecure-Requests": "1",
             "Cache-Control": "max-age=0",
-            "Connection": "keep-alive",
         }
         if self.client is None:
             self.client = httpx.AsyncClient(
                 proxies={"http://": self.proxy_url, "https://": self.proxy_url},
                 headers=headers_agent,
                 cookies=self.cookies,
+                timeout=30.0,
             )
 
         try:
@@ -75,6 +76,7 @@ class PrataApiService:
 
             return response
         except httpx.HTTPStatusError as e:
+            traceback.print_exc()
             error_message = f"HTTP error: {e.response.status_code}"
             try:
                 error_data = e.response.json()
@@ -97,20 +99,24 @@ class PrataApiService:
                 "email": user_data["username"],
                 "password": user_data["password"],
             }
-            print(f"Payload: {payload}")
-            print(f"Proxy URL: {self.proxy_url}")
-
             response = await self._make_request(
                 "POST", self.login_url, json=payload, timeout=10
             )
-            context = response.json()
-            self.token = context["data"]["token"]
-            return self.token
+
+            for encoding in ["utf-8", "latin-1", "iso-8859-1"]:
+                try:
+                    context = json.loads(response.content.decode(encoding))
+                    self.token = context["data"]["token"]
+                    return self.token
+                except UnicodeDecodeError:
+                    continue
+
+            raise BotUnauthorizedException(
+                "Não foi possível decodificar a resposta do servidor"
+            )
 
         except BotProposalInfoException as e:
             raise BotUnauthorizedException(f"Erro de autenticação: {str(e)}")
-        except (KeyError, ValueError) as e:
-            raise BotUnauthorizedException(f"Dados inválidos: {str(e)}")
         except Exception as e:
             raise BotUnauthorizedException(f"Erro inesperado: {str(e)}")
 
