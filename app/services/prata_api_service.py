@@ -6,6 +6,8 @@ import time
 from dotenv import load_dotenv
 import traceback
 import os
+import json
+
 
 load_dotenv()
 
@@ -40,25 +42,38 @@ class PrataApiService:
         self.token = None
 
     async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
-        async with httpx.AsyncClient(
-            proxies={"http://": self.proxy_url, "https://": self.proxy_url},
-        ) as client:
-            response = await client.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response
+        try:
+            async with httpx.AsyncClient(
+                proxies={"http://": self.proxy_url, "https://": self.proxy_url},
+            ) as client:
+                response = await client.request(method, url, **kwargs)
+                response.raise_for_status()
+                return response
+        except httpx.HTTPStatusError as e:
+            error_message = f"HTTP error: {e.response.status_code}"
+            try:
+                error_data = e.response.json()
+                if isinstance(error_data, dict) and "error" in error_data:
+                    error_message = error_data["error"].get("message", error_message)
+            except json.JSONDecodeError:
+                error_message += f" - Response: {e.response.text}"
+            raise BotProposalInfoException(error_message)
+        except httpx.RequestError as error:
+            raise BotProposalInfoException(f"Request error: {str(error)}")
+        except Exception as e:
+            raise BotProposalInfoException(f"Unexpected error: {str(e)}")
 
     async def authenticate(self, data: Dict[str, Any]) -> str:
         if self.token:
             return self.token
-
         try:
             user_data = data["bank_access"]
             payload = {
                 "email": user_data["username"],
                 "password": user_data["password"],
             }
-            print(payload)
-            print(self.proxy_url)
+            print(f"Payload: {payload}")
+            print(f"Proxy URL: {self.proxy_url}")
 
             response = await self._make_request(
                 "POST", self.login_url, json=payload, timeout=10
@@ -67,9 +82,8 @@ class PrataApiService:
             self.token = context["data"]["token"]
             return self.token
 
-        except httpx.RequestError as error:
-            traceback.print_exc()
-            raise BotUnauthorizedException(f"Erro de autenticação: {str(error)}")
+        except BotProposalInfoException as e:
+            raise BotUnauthorizedException(f"Erro de autenticação: {str(e)}")
         except (KeyError, ValueError) as e:
             raise BotUnauthorizedException(f"Dados inválidos: {str(e)}")
         except Exception as e:
@@ -114,7 +128,7 @@ class PrataApiService:
 
             return strategy_result
 
-        except httpx.RequestError as e:
+        except BotProposalInfoException as e:
             traceback.print_exc()
             raise BotProposalInfoException(f"Erro na simulação: {str(e)}")
 
@@ -344,9 +358,9 @@ class PrataApiService:
                 "POST", url, json=data, headers=headers, timeout=10
             )
             return response.json()
-        except httpx.RequestError as error:
+        except BotProposalInfoException as error:
             traceback.print_exc()
-            raise BotProposalInfoException(str(error.response.status_code))
+            raise BotProposalInfoException(str(error))
 
     @staticmethod
     def create_pix_resume(pix_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -367,16 +381,12 @@ class PrataApiService:
             headers = await self.get_auth_headers(data)
             url = f"{self.formalization_url}{proposal_id}"
 
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
-                formalization = response.json()
-                url = f"https://assina.bancoprata.com.br/validacao/{formalization['data']['token']}"
+            response = await self._make_request("GET", url, headers=headers)
+            formalization = response.json()
+            return f"https://assina.bancoprata.com.br/validacao/{formalization['data']['token']}"
 
-            return url
-
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
+        except BotProposalInfoException as e:
+            if "404" in str(e):
                 return {
                     "status": "Not Found",
                     "message": "Ainda não foi possível encontrar o link de formalização, tente novamente mais tarde.",
@@ -384,12 +394,8 @@ class PrataApiService:
             else:
                 return {
                     "status": "Error",
-                    "message": f"Ocorreu um erro ao buscar o link de formalização. Status: {e.response.status_code}. Por favor, tente novamente mais tarde.",
+                    "message": f"Ocorreu um erro ao buscar o link de formalização. Erro: {str(e)}. Por favor, tente novamente mais tarde.",
                 }
-        except httpx.RequestError as error:
-            return {"status_code": error.response.status_code}
-        except Exception:
-            return {"status_code": 500}
 
     async def _get_pix(self, data, cpf):
         headers = await self.get_auth_headers(data)
@@ -402,12 +408,15 @@ class PrataApiService:
                 response.raise_for_status()
                 return {"data": response.json()["data"]}
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                data = response.json()
-                raise BotProposalInfoException(data["error"]["message"])
-            else:
-                raise BotProposalInfoException(response.json())
+            error_message = f"HTTP error: {e.response.status_code}"
+            try:
+                error_data = e.response.json()
+                if isinstance(error_data, dict) and "error" in error_data:
+                    error_message = error_data["error"].get("message", error_message)
+            except json.JSONDecodeError:
+                error_message += f" - Response: {e.response.text}"
+            raise BotProposalInfoException(error_message)
         except httpx.RequestError as error:
-            raise BotProposalInfoException(error.response.status_code)
-        except Exception:
-            return {"status_code": 500}
+            raise BotProposalInfoException(f"Request error: {str(error)}")
+        except Exception as e:
+            raise BotProposalInfoException(f"Unexpected error: {str(e)}")
